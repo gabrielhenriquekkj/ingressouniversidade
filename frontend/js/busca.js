@@ -4,8 +4,16 @@ const POR_PAGINA = 6
 let cacheBusca = new Map()
 let listaCompleta = []
 let paginaAtual = 0
+let buscaIniciada = false
 
 document.addEventListener('DOMContentLoaded', iniciarPaginaBusca)
+
+document.addEventListener('idioma:alterado', function () {
+  preencherOpcoesSelects()
+  if (!buscaIniciada) return
+  paginaAtual = 0
+  renderizarResultados(listaCompleta)
+})
 
 function iniciarPaginaBusca() {
   montarNavbar('home')
@@ -17,25 +25,37 @@ function iniciarPaginaBusca() {
 
 function preencherSelects() {
   const selectEstado = document.getElementById('filtroEstado')
-  const selectCidade = document.getElementById('filtroCidade')
+  preencherOpcoesSelects()
 
-  selectEstado.innerHTML = '<option value="">Todos os estados</option>' +
+  selectEstado.addEventListener('change', function () {
+    preencherOpcoesCidades()
+  })
+}
+
+function preencherOpcoesSelects() {
+  const selectEstado = document.getElementById('filtroEstado')
+  const selectCidade = document.getElementById('filtroCidade')
+  const estadoAtual = selectEstado.value
+  const cidadeAtual = selectCidade.value
+
+  selectEstado.innerHTML = '<option value="">' + escapeHTML(t('filtros.todasUfs')) + '</option>' +
     listarEstadosDemo().map(function (estado) {
       return '<option value="' + escapeHTML(estado) + '">' + escapeHTML(estado) + '</option>'
     }).join('')
+  selectEstado.value = estadoAtual
 
-  const cidades = listarCidadesDemo()
-  selectCidade.innerHTML = '<option value="">Todas as cidades</option>' +
-    cidades.map(function (cidade) {
+  preencherOpcoesCidades(cidadeAtual)
+}
+
+function preencherOpcoesCidades(cidadeAtual) {
+  const selectEstado = document.getElementById('filtroEstado')
+  const selectCidade = document.getElementById('filtroCidade')
+  const valorAtual = cidadeAtual !== undefined ? cidadeAtual : selectCidade.value
+  selectCidade.innerHTML = '<option value="">' + escapeHTML(t('filtros.todasCidades')) + '</option>' +
+    listarCidadesDemo(selectEstado.value).map(function (cidade) {
       return '<option value="' + escapeHTML(cidade) + '">' + escapeHTML(cidade) + '</option>'
     }).join('')
-
-  selectEstado.addEventListener('change', function () {
-    selectCidade.innerHTML = '<option value="">Todas as cidades</option>' +
-      listarCidadesDemo(selectEstado.value).map(function (cidade) {
-        return '<option value="' + escapeHTML(cidade) + '">' + escapeHTML(cidade) + '</option>'
-      }).join('')
-  })
+  selectCidade.value = valorAtual
 }
 
 function vincularEventos() {
@@ -90,16 +110,17 @@ async function executarBusca() {
   const resumo = document.getElementById('resumoResultados')
   const filtros = obterFiltros()
 
+  buscaIniciada = true
   paginaAtual = 0
   cacheBusca.clear()
   area.innerHTML = skeleton(3)
-  resumo.textContent = 'Buscando...'
+  resumo.textContent = t('resultados.buscando')
 
   try {
     listaCompleta = await buscarCursos(filtros)
     renderizarResultados(listaCompleta)
   } catch (erro) {
-    area.innerHTML = estadoErro(erro.message || 'Nao foi possivel buscar os cursos.')
+    area.innerHTML = estadoErro(erro.message || t('resultados.erro'))
     resumo.textContent = ''
     atualizarBotaoCarregarMais()
   }
@@ -110,10 +131,10 @@ function renderizarResultados(cursos) {
   const resumo = document.getElementById('resumoResultados')
 
   if (cursos.length === 0) {
-    area.innerHTML = estadoVazio('Nenhum curso encontrado com os filtros selecionados. Tente modificar a busca.')
+    area.innerHTML = estadoVazio(t('resultados.vazio'))
     resumo.textContent = ''
   } else {
-    resumo.textContent = cursos.length + (cursos.length === 1 ? ' resultado encontrado' : ' resultados encontrados')
+    resumo.textContent = tp('resultados.resumo', cursos.length)
     const iniciais = cursos.slice(paginaAtual, paginaAtual + POR_PAGINA)
     area.innerHTML = iniciais.map(function (curso) { return cardResultado(curso) }).join('')
     paginaAtual += iniciais.length

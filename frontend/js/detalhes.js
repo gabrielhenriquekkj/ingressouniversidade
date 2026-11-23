@@ -4,12 +4,19 @@ let cursoDetalhe = null
 
 document.addEventListener('DOMContentLoaded', iniciarPaginaDetalhe)
 
+document.addEventListener('idioma:alterado', function () {
+  if (!cursoDetalhe) return
+  renderizarCabecalho(cursoDetalhe)
+  renderizarAbas(cursoDetalhe)
+  configurarAbas()
+})
+
 function iniciarPaginaDetalhe() {
   montarNavbar('detalhes')
 
   const id = pegarParametroURL('id')
   if (!id) {
-    mostrarIndisponivel('Nenhum curso informado na URL.')
+    mostrarIndisponivel(t('detalhes.semId'))
     return
   }
   carregarCurso(id)
@@ -41,7 +48,7 @@ async function carregarCurso(id) {
 
   if (!curso) {
     mostrarCarregando(false)
-    mostrarIndisponivel('Curso nao encontrado.')
+    mostrarIndisponivel(t('detalhes.naoEncontrado'))
     return
   }
 
@@ -85,15 +92,15 @@ function renderizarCabecalho(curso) {
     '<span class="inline-flex items-center gap-1.5 px-3 py-1 bg-white ring-1 ring-gray-200 rounded-full font-semibold text-gray-700">' +
     ICONES.casa + ' ' + escapeHTML(curso.cidade || '') + '/' + escapeHTML(curso.estado || '') +
     '</span>' +
-    '<span class="px-3 py-1 bg-white ring-1 ring-gray-200 rounded-full font-semibold text-gray-700">' + escapeHTML(curso.modalidade || 'Presencial') + '</span>' +
+    '<span class="px-3 py-1 bg-white ring-1 ring-gray-200 rounded-full font-semibold text-gray-700">' + escapeHTML(curso.modalidade || t('detalhes.presencial')) + '</span>' +
     '<span class="px-3 py-1 bg-white ring-1 ring-gray-200 rounded-full font-semibold text-gray-700">' + escapeHTML(curso.grau || '\u2014') + '</span>' +
-    (curso.duracao_semestres ? '<span class="px-3 py-1 bg-white ring-1 ring-gray-200 rounded-full font-semibold text-gray-700">' + escapeHTML(String(curso.duracao_semestres)) + ' semestres</span>' : '') +
+    (curso.duracao_semestres ? '<span class="px-3 py-1 bg-white ring-1 ring-gray-200 rounded-full font-semibold text-gray-700">' + escapeHTML(t('detalhes.semestres', { quantidade: curso.duracao_semestres })) + '</span>' : '') +
     '</div>' +
     '</div>' +
     '<div class="flex flex-col gap-3 shrink-0">' +
     botaoFavorito(curso, true) +
     '<a href="' + base + '/index.html" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full text-sm font-semibold bg-gray-100 text-gray-700 ring-1 ring-gray-200 hover:bg-gray-200 transition">' +
-    'Voltar para a busca</a>' +
+    escapeHTML(t('detalhes.voltarBusca')) + '</a>' +
     '</div></div>'
 }
 
@@ -109,20 +116,20 @@ function renderizarCustos(curso) {
   const custos = curso.custos
 
   if (!custos) {
-    area.innerHTML = estadoVazio('Custos da cidade ainda nao mapeados para este curso.')
+    area.innerHTML = estadoVazio(t('detalhes.semCustosCurso'))
     return
   }
 
   const total = (custos.moradia || 0) + (custos.alimentacao || 0) + (custos.transporte || 0) + (custos.outros || 0)
   area.innerHTML =
     '<div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">' +
-    cardInfo(ICONES.casa, 'Moradia', formatarMoeda(custos.moradia)) +
-    cardInfo(ICONES.comida, 'Alimentacao', formatarMoeda(custos.alimentacao)) +
-    cardInfo(ICONES.onibus, 'Transporte', formatarMoeda(custos.transporte)) +
-    cardInfo(ICONES.cartao, 'Outros', formatarMoeda(custos.outros)) +
+    cardInfo(ICONES.casa, t('detalhes.moradia'), formatarMoeda(custos.moradia)) +
+    cardInfo(ICONES.comida, t('detalhes.alimentacao'), formatarMoeda(custos.alimentacao)) +
+    cardInfo(ICONES.onibus, t('detalhes.transporte'), formatarMoeda(custos.transporte)) +
+    cardInfo(ICONES.cartao, t('detalhes.outros'), formatarMoeda(custos.outros)) +
     '</div>' +
     '<div class="mt-5">' +
-    cardInfo(ICONES.moeda, 'Total mensal estimado em ' + (custos.cidade || curso.cidade || '') + '/' + (custos.estado || curso.estado || ''), formatarMoeda(total), true) +
+    cardInfo(ICONES.moeda, t('detalhes.totalMensal', { cidade: custos.cidade || curso.cidade || '', estado: custos.estado || curso.estado || '' }), formatarMoeda(total), true) +
     '</div>'
 }
 
@@ -137,14 +144,14 @@ function renderizarMercado(curso) {
 
   const cards =
     '<div class="grid sm:grid-cols-3 gap-4">' +
-    cardInfo(ICONES.grafico, 'Demanda na regiao', mercado.regiao ? 'Mercado em ' + escapeHTML(mercado.regiao) : '\u2014') +
-    cardInfo(ICONES.moeda, 'Salario medio', formatarMoeda(mercado.salario_medio)) +
-    cardInfo(ICONES.mala, 'Vagas de estagio', mercado.vagas_estagio ? Number(mercado.vagas_estagio).toLocaleString('pt-BR') + ' vagas' : '\u2014') +
+    cardInfo(ICONES.grafico, t('detalhes.demandaRegiao'), mercado.regiao ? t('detalhes.mercadoEm', { regiao: mercado.regiao }) : '\u2014') +
+    cardInfo(ICONES.moeda, t('detalhes.salarioMedio'), formatarMoeda(mercado.salario_medio)) +
+    cardInfo(ICONES.mala, t('detalhes.vagasEstagio'), mercado.vagas_estagio ? t('detalhes.vagas', { quantidade: formatarNumero(mercado.vagas_estagio) }) : '\u2014') +
     '</div>'
 
   const demandaExtra = demanda
     ? '<div class="mt-5 flex items-center gap-2">' +
-      '<span class="text-sm font-semibold text-gray-600">Classificacao da demanda:</span>' +
+      '<span class="text-sm font-semibold text-gray-600">' + escapeHTML(t('detalhes.classificacaoDemanda')) + '</span>' +
       badge(rotuloDemanda(demanda), corDemanda(demanda)) +
       '</div>'
     : ''

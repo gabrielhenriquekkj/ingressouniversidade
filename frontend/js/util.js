@@ -56,7 +56,7 @@ function toast(mensagem, tipo) {
 
 function formatarMoeda(valor) {
   if (valor == null || valor === '' || isNaN(Number(valor))) return '\u2014'
-  return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  return Number(valor).toLocaleString(obterLocale(), { style: 'currency', currency: 'BRL' })
 }
 
 function badge(texto, classes) {
@@ -72,9 +72,9 @@ function corDemanda(demanda) {
 
 function rotuloDemanda(demanda) {
   const d = String(demanda).toLowerCase()
-  if (d === 'alta') return 'Alta demanda'
-  if (d === 'media' || d === 'm\u00e9dia') return 'M\u00e9dia demanda'
-  return 'Baixa demanda'
+  if (d === 'alta') return t('demanda.alta')
+  if (d === 'media' || d === 'm\u00e9dia') return t('demanda.media')
+  return t('demanda.baixa')
 }
 
 function skeleton(quantidade) {
@@ -122,15 +122,22 @@ const ICONES = {
   estrelaVazia: '<svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>'
 }
 
+let paginaNavbarAtual = ''
+
+document.addEventListener('idioma:alterado', function () {
+  if (document.getElementById('navbar')) montarNavbar(paginaNavbarAtual)
+})
+
 function montarNavbar(paginaAtiva) {
+  paginaNavbarAtual = paginaAtiva
   const base = caminhoBase()
   const qtdFavoritos = obterFavoritosLocal().length
   const badgeFav = qtdFavoritos > 0
     ? '<span id="contadorFavoritos" class="ml-1 inline-flex items-center justify-center w-5 h-5 text-xs font-bold bg-amber-500 text-white rounded-full">' + qtdFavoritos + '</span>'
     : '<span id="contadorFavoritos" class="ml-1 hidden inline-flex items-center justify-center w-5 h-5 text-xs font-bold bg-amber-500 text-white rounded-full"></span>'
   const links = [
-    { chave: 'home', href: base + '/index.html', rotulo: 'Busca' },
-    { chave: 'favoritos', href: base + '/paginas/favoritos.html', rotulo: 'Favoritos' + badgeFav }
+    { chave: 'home', href: base + '/index.html', rotulo: t('nav.busca') },
+    { chave: 'favoritos', href: base + '/paginas/favoritos.html', rotulo: t('nav.favoritos') + badgeFav }
   ]
   const itens = links.map((link) => {
     const ativo = link.chave === paginaAtiva
@@ -145,8 +152,11 @@ function montarNavbar(paginaAtiva) {
     '<div class="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">' +
     '<a href="' + base + '/index.html" class="text-lg font-extrabold text-indigo-700 flex items-center gap-2">' +
     '<svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 15v4M10 11v8M16 7v12M22 4v16"/></svg>' +
-    'Ingresso Universit\u00e1rio</a>' +
-    '<nav class="flex items-center gap-5">' + itens + '</nav>' +
+    escapeHTML(t('nav.marca')) + '</a>' +
+    '<div class="flex shrink-0 items-center gap-2 sm:gap-5">' +
+    '<nav class="flex items-center gap-3 sm:gap-5">' + itens + '</nav>' +
+    montarSeletorIdioma() +
+    '</div>' +
     '</div></header>'
 }
 
